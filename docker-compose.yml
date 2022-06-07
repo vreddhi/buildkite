@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  web:
+    image: python:3.5
+    command:
+      - /bin/sh
+      - -c
+      - |
+          echo "Instalando postgresql"
+          export PGDATA=/opt/postgresql/data
+          wget https://gist.githubusercontent.com/nenodias/28ac55b9ad3fda43a9de63a9efb82d18/raw/c4c75e8b89d2a20b02e56a54d3446a69a2c00e29/postgres_install.py
+          chmod -Rf 777 /opt
+          useradd postgres
+          su -c "python postgres_install.py" -s /bin/sh postgres
+          echo "Concluído"
+          cd ${working_dir}
+          git clone https://github.com/nenodias/millenium.git project
+          cd project
+          git checkout deploy
+          git pull origin deploy
+          /usr/local/bin/pip install -r requirements.txt
+          echo "App starting"
+          /usr/local/bin/gunicorn wsgi:application --bind=0.0.0.0:8000
+    environment:
+        DATABASE_URL: postgresql://postgres@127.0.0.1:5432/millenium
+    volumes:
+      - ./postgres-data:/opt/postgresql/data
+      - ${PWD}/project:/home/docker/
+    working_dir: /home/docker/
+    ports:
+      - "8000:8000"
